@@ -21,11 +21,13 @@ def inspect_pods(namespace: str = "--all-namespaces") -> dict:
     """
     log.info("Starting pod inspection...")
 
-    result = execute_kubectl([
-        "kubectl", "get", "pods",
-        "-A",
-        "-o", "wide"
-    ])
+    # Build kubectl command based on namespace
+    if namespace == "--all-namespaces":
+     cmd = ["kubectl", "get", "pods", "-A", "-o", "wide"]
+    else:
+     cmd = ["kubectl", "get", "pods", "-n", namespace, "-o", "wide"]
+
+    result = execute_kubectl(cmd)
 
     if not result["success"]:
         log.error("Failed to get pods from cluster")
