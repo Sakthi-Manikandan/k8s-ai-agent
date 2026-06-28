@@ -89,5 +89,4 @@ def run_investigation(namespace: str = "--all-namespaces") -> dict:
         f"{investigation['summary']['cluster_healthy']}"
     )
     log.info("=" * 50)
-
     return investigation
