@@ -9,11 +9,19 @@ def inspect_deployments(namespace: str = "--all-namespaces") -> dict:
     """
     log.info("Starting deployment inspection...")
 
-    result = execute_kubectl([
-        "kubectl", "get", "deployments",
-        "-A",
-        "-o", "wide"
-    ])
+    if namespace == "--all-namespaces":
+        cmd = [
+            "kubectl", "get", "deployments",
+            "-A", "-o", "wide"
+        ]
+    else:
+        cmd = [
+            "kubectl", "get", "deployments",
+            "-n", namespace,
+            "-o", "wide"
+        ]
+
+    result = execute_kubectl(cmd)
 
     if not result["success"]:
         log.error("Failed to get deployments from cluster")
@@ -36,11 +44,18 @@ def inspect_deployments(namespace: str = "--all-namespaces") -> dict:
         if len(parts) < 5:
             continue
 
-        dep_namespace = parts[0]
-        name = parts[1]
-        ready = parts[2]
-        up_to_date = parts[3]
-        available = parts[4]
+        if namespace == "--all-namespaces":
+            dep_namespace = parts[0]
+            name = parts[1]
+            ready = parts[2]
+            up_to_date = parts[3]
+            available = parts[4]
+        else:
+            dep_namespace = namespace
+            name = parts[0]
+            ready = parts[1]
+            up_to_date = parts[2]
+            available = parts[3]
 
         try:
             ready_count, desired_count = ready.split("/")
@@ -103,7 +118,9 @@ def describe_deployment(
     ])
 
     if not result["success"]:
-        log.error(f"Failed to describe deployment: {deployment_name}")
+        log.error(
+            f"Failed to describe deployment: {deployment_name}"
+        )
         return {
             "success": False,
             "error": result["error"]

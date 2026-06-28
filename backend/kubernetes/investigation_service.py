@@ -14,10 +14,12 @@ def run_investigation(namespace: str = "--all-namespaces") -> dict:
     """
     log.info("=" * 50)
     log.info("Starting full Kubernetes investigation...")
+    log.info(f"Namespace: {namespace}")
     log.info("=" * 50)
 
     investigation = {
         "status": "investigating",
+        "namespace": namespace,
         "pods": {},
         "logs": {},
         "events": {},
@@ -26,12 +28,10 @@ def run_investigation(namespace: str = "--all-namespaces") -> dict:
         "summary": {}
     }
 
-    # Step 1 — Check pods
     log.info("Step 1/5: Inspecting pods...")
-    pod_results = inspect_pods()
+    pod_results = inspect_pods(namespace)
     investigation["pods"] = pod_results
 
-    # Step 2 — Collect logs from problematic pods
     log.info("Step 2/5: Collecting logs...")
     if pod_results.get("problematic_pods"):
         log_results = collect_logs_for_problematic_pods(
@@ -42,22 +42,18 @@ def run_investigation(namespace: str = "--all-namespaces") -> dict:
         log.info("No problematic pods found")
         investigation["logs"] = {}
 
-    # Step 3 — Analyze events
     log.info("Step 3/5: Analyzing events...")
-    event_results = analyze_events()
+    event_results = analyze_events(namespace)
     investigation["events"] = event_results
 
-    # Step 4 — Inspect deployments
     log.info("Step 4/5: Inspecting deployments...")
-    deployment_results = inspect_deployments()
+    deployment_results = inspect_deployments(namespace)
     investigation["deployments"] = deployment_results
 
-    # Step 5 — Check networking
     log.info("Step 5/5: Checking networking...")
-    network_results = inspect_network()
+    network_results = inspect_network(namespace)
     investigation["network"] = network_results
 
-    # Build summary
     investigation["summary"] = {
         "total_pods": pod_results.get("total_pods", 0),
         "problematic_pods": len(
@@ -89,4 +85,5 @@ def run_investigation(namespace: str = "--all-namespaces") -> dict:
         f"{investigation['summary']['cluster_healthy']}"
     )
     log.info("=" * 50)
+
     return investigation

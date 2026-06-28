@@ -9,16 +9,25 @@ def inspect_network(namespace: str = "--all-namespaces") -> dict:
     """
     log.info("Starting network inspection...")
 
-    services_result = execute_kubectl([
-        "kubectl", "get", "svc",
-        "-A",
-        "-o", "wide"
-    ])
-
-    endpoints_result = execute_kubectl([
-        "kubectl", "get", "endpoints",
-        "-A"
-    ])
+    if namespace == "--all-namespaces":
+        services_result = execute_kubectl([
+            "kubectl", "get", "svc",
+            "-A", "-o", "wide"
+        ])
+        endpoints_result = execute_kubectl([
+            "kubectl", "get", "endpoints",
+            "-A"
+        ])
+    else:
+        services_result = execute_kubectl([
+            "kubectl", "get", "svc",
+            "-n", namespace,
+            "-o", "wide"
+        ])
+        endpoints_result = execute_kubectl([
+            "kubectl", "get", "endpoints",
+            "-n", namespace
+        ])
 
     if not services_result["success"]:
         log.error("Failed to get services from cluster")
@@ -41,14 +50,24 @@ def inspect_network(namespace: str = "--all-namespaces") -> dict:
         if len(parts) < 5:
             continue
 
-        service = {
-            "namespace": parts[0],
-            "name": parts[1],
-            "type": parts[2],
-            "cluster_ip": parts[3],
-            "ports": parts[4],
-            "selector": parts[-1] if len(parts) > 5 else "none"
-        }
+        if namespace == "--all-namespaces":
+            service = {
+                "namespace": parts[0],
+                "name": parts[1],
+                "type": parts[2],
+                "cluster_ip": parts[3],
+                "ports": parts[4],
+                "selector": parts[-1] if len(parts) > 5 else "none"
+            }
+        else:
+            service = {
+                "namespace": namespace,
+                "name": parts[0],
+                "type": parts[1],
+                "cluster_ip": parts[2],
+                "ports": parts[3],
+                "selector": parts[-1] if len(parts) > 4 else "none"
+            }
 
         services.append(service)
 
@@ -78,9 +97,14 @@ def inspect_network(namespace: str = "--all-namespaces") -> dict:
             if len(parts) < 3:
                 continue
 
-            ep_namespace = parts[0]
-            name = parts[1]
-            endpoints = parts[2]
+            if namespace == "--all-namespaces":
+                ep_namespace = parts[0]
+                name = parts[1]
+                endpoints = parts[2]
+            else:
+                ep_namespace = namespace
+                name = parts[0]
+                endpoints = parts[1] if len(parts) > 1 else "<none>"
 
             if endpoints == "<none>":
                 log.warning(

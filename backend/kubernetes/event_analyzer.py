@@ -23,11 +23,20 @@ def analyze_events(namespace: str = "--all-namespaces") -> dict:
     """
     log.info("Starting event analysis...")
 
-    result = execute_kubectl([
-        "kubectl", "get", "events",
-        "-A",
-        "--sort-by=.lastTimestamp"
-    ])
+    if namespace == "--all-namespaces":
+        cmd = [
+            "kubectl", "get", "events",
+            "-A",
+            "--sort-by=.lastTimestamp"
+        ]
+    else:
+        cmd = [
+            "kubectl", "get", "events",
+            "-n", namespace,
+            "--sort-by=.lastTimestamp"
+        ]
+
+    result = execute_kubectl(cmd)
 
     if not result["success"]:
         log.error("Failed to get events from cluster")
@@ -50,14 +59,24 @@ def analyze_events(namespace: str = "--all-namespaces") -> dict:
         if len(parts) < 5:
             continue
 
-        event = {
-            "namespace": parts[0],
-            "last_seen": parts[1],
-            "type": parts[2],
-            "reason": parts[3],
-            "object": parts[4],
-            "message": " ".join(parts[5:])
-        }
+        if namespace == "--all-namespaces":
+            event = {
+                "namespace": parts[0],
+                "last_seen": parts[1],
+                "type": parts[2],
+                "reason": parts[3],
+                "object": parts[4],
+                "message": " ".join(parts[5:])
+            }
+        else:
+            event = {
+                "namespace": namespace,
+                "last_seen": parts[0],
+                "type": parts[1],
+                "reason": parts[2],
+                "object": parts[3],
+                "message": " ".join(parts[4:])
+            }
 
         all_events.append(event)
 

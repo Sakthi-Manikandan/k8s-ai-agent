@@ -5,8 +5,6 @@ from backend.core.logger import log
 def restart_pod(pod_name: str, namespace: str = "default") -> dict:
     """
     Restarts a specific pod.
-    Like running: kubectl rollout restart deployment
-    
     ⚠️ Only executes after human approval!
     """
     log.info(f"Restarting pod: {pod_name} in {namespace}")
@@ -24,8 +22,10 @@ def restart_pod(pod_name: str, namespace: str = "default") -> dict:
             "action": "restart_pod",
             "pod": pod_name,
             "namespace": namespace,
-            "message": f"Pod {pod_name} deleted and "
-                       f"will restart automatically!"
+            "message": (
+                f"Pod {pod_name} deleted and "
+                f"will restart automatically!"
+            )
         }
 
     log.error(f"Failed to restart pod: {pod_name}")
@@ -41,8 +41,6 @@ def restart_deployment(
 ) -> dict:
     """
     Restarts all pods in a deployment.
-    Like running: kubectl rollout restart deployment <name>
-    
     ⚠️ Only executes after human approval!
     """
     log.info(
@@ -66,8 +64,10 @@ def restart_deployment(
             "action": "restart_deployment",
             "deployment": deployment_name,
             "namespace": namespace,
-            "message": f"Deployment {deployment_name} "
-                       f"rollout restart triggered!"
+            "message": (
+                f"Deployment {deployment_name} "
+                f"rollout restart triggered!"
+            )
         }
 
     log.error(
@@ -86,8 +86,6 @@ def scale_deployment(
 ) -> dict:
     """
     Scales a deployment to specified replicas.
-    Like running: kubectl scale deployment <name> --replicas=3
-    
     ⚠️ Only executes after human approval!
     """
     log.info(
@@ -113,8 +111,10 @@ def scale_deployment(
             "deployment": deployment_name,
             "namespace": namespace,
             "replicas": replicas,
-            "message": f"Deployment {deployment_name} "
-                       f"scaled to {replicas} replicas!"
+            "message": (
+                f"Deployment {deployment_name} "
+                f"scaled to {replicas} replicas!"
+            )
         }
 
     log.error(
@@ -126,10 +126,14 @@ def scale_deployment(
     }
 
 
-def get_suggested_actions(diagnosis: dict, investigation: dict) -> list:
+def get_suggested_actions(
+    diagnosis: dict,
+    investigation: dict
+) -> list:
     """
     Based on AI diagnosis, suggests what actions to take.
     User must APPROVE before execution!
+    This is the Human in the Loop pattern!
     """
     log.info("Generating suggested actions...")
     actions = []
@@ -147,8 +151,13 @@ def get_suggested_actions(diagnosis: dict, investigation: dict) -> list:
         if "crashloopbackoff" in status.lower():
             actions.append({
                 "action_type": "restart_pod",
-                "reason": f"Pod {pod_name} is in CrashLoopBackOff",
-                "command": f"kubectl delete pod {pod_name} -n {namespace}",
+                "reason": (
+                    f"Pod {pod_name} is in CrashLoopBackOff"
+                ),
+                "command": (
+                    f"kubectl delete pod {pod_name} "
+                    f"-n {namespace}"
+                ),
                 "pod": pod_name,
                 "namespace": namespace,
                 "risk": "LOW",
@@ -159,7 +168,7 @@ def get_suggested_actions(diagnosis: dict, investigation: dict) -> list:
         elif "imagepullbackoff" in status.lower() or \
                 "errimagepull" in status.lower():
 
-            # Dynamically find deployment name from pod name
+            # Dynamically find deployment from pod name
             pod_parts = pod_name.split("-")
             likely_deployment = "-".join(pod_parts[:-2])
 
@@ -173,7 +182,9 @@ def get_suggested_actions(diagnosis: dict, investigation: dict) -> list:
             if describe_result["success"]:
                 for line in describe_result["output"].split("\n"):
                     if "Image:" in line:
-                        current_image = line.split("Image:")[-1].strip()
+                        current_image = line.split(
+                            "Image:"
+                        )[-1].strip()
                         break
 
             actions.append({
@@ -184,8 +195,10 @@ def get_suggested_actions(diagnosis: dict, investigation: dict) -> list:
                     f"is invalid or unreachable!"
                 ),
                 "command": (
-                    f"kubectl set image deployment/{likely_deployment} "
-                    f"{likely_deployment}=CORRECT_IMAGE:CORRECT_TAG "
+                    f"kubectl set image "
+                    f"deployment/{likely_deployment} "
+                    f"{likely_deployment}="
+                    f"CORRECT_IMAGE:CORRECT_TAG "
                     f"-n {namespace}\n\n"
                     f"# Replace CORRECT_IMAGE:CORRECT_TAG "
                     f"with the right image!\n"
@@ -205,7 +218,10 @@ def get_suggested_actions(diagnosis: dict, investigation: dict) -> list:
             actions.append({
                 "action_type": "restart_pod",
                 "reason": f"Pod {pod_name} was OOMKilled",
-                "command": f"kubectl delete pod {pod_name} -n {namespace}",
+                "command": (
+                    f"kubectl delete pod {pod_name} "
+                    f"-n {namespace}"
+                ),
                 "pod": pod_name,
                 "namespace": namespace,
                 "risk": "MEDIUM",
@@ -237,16 +253,15 @@ def get_suggested_actions(diagnosis: dict, investigation: dict) -> list:
     log.info(f"Generated {len(actions)} suggested actions")
     return actions
 
+
 def execute_approved_action(action: dict) -> dict:
     """
     Executes an action ONLY after human approval!
-
     This is the key function that enforces
     Human in the Loop pattern!
     """
-    # Safety check - must be approved!
     if not action.get("approved", False):
-        log.warning("Action not approved! Skipping execution!")
+        log.warning("Action not approved! Skipping!")
         return {
             "success": False,
             "error": "Action not approved by user!"
@@ -255,21 +270,18 @@ def execute_approved_action(action: dict) -> dict:
     action_type = action.get("action_type")
     log.info(f"Executing approved action: {action_type}")
 
-    # Restart a single pod
     if action_type == "restart_pod":
         return restart_pod(
             action["pod"],
             action["namespace"]
         )
 
-    # Restart entire deployment
     elif action_type == "restart_deployment":
         return restart_deployment(
             action["deployment"],
             action["namespace"]
         )
 
-    # Scale deployment
     elif action_type == "scale_deployment":
         return scale_deployment(
             action["deployment"],
@@ -277,18 +289,12 @@ def execute_approved_action(action: dict) -> dict:
             action["namespace"]
         )
 
-    # ImagePullBackOff fix
-    # Agent cannot auto-fix this because
-    # it doesn't know the correct image tag!
-    # Instead it describes the pod so user
-    # gets full details to fix manually!
     elif action_type == "fix_image":
         result = execute_kubectl([
             "kubectl", "describe", "pod",
             action["pod"],
             "-n", action["namespace"]
         ])
-
         if result["success"]:
             return {
                 "success": True,
@@ -297,7 +303,8 @@ def execute_approved_action(action: dict) -> dict:
                     f"auto-fixed safely! "
                     f"Current broken image: "
                     f"{action.get('current_image', 'unknown')}. "
-                    f"Please update manually with correct image tag!"
+                    f"Please update manually with "
+                    f"correct image tag!"
                 )
             }
         return {
@@ -305,7 +312,6 @@ def execute_approved_action(action: dict) -> dict:
             "error": result["error"]
         }
 
-    # Unknown action type
     else:
         log.warning(f"Unknown action type: {action_type}")
         return {

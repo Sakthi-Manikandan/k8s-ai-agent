@@ -21,11 +21,17 @@ def inspect_pods(namespace: str = "--all-namespaces") -> dict:
     """
     log.info("Starting pod inspection...")
 
-    # Build kubectl command based on namespace
     if namespace == "--all-namespaces":
-     cmd = ["kubectl", "get", "pods", "-A", "-o", "wide"]
+        cmd = [
+            "kubectl", "get", "pods",
+            "-A", "-o", "wide"
+        ]
     else:
-     cmd = ["kubectl", "get", "pods", "-n", namespace, "-o", "wide"]
+        cmd = [
+            "kubectl", "get", "pods",
+            "-n", namespace,
+            "-o", "wide"
+        ]
 
     result = execute_kubectl(cmd)
 
@@ -50,11 +56,18 @@ def inspect_pods(namespace: str = "--all-namespaces") -> dict:
         if len(parts) < 5:
             continue
 
-        pod_namespace = parts[0]
-        pod_name = parts[1]
-        ready = parts[2]
-        status = parts[3]
-        restarts = parts[4]
+        if namespace == "--all-namespaces":
+            pod_namespace = parts[0]
+            pod_name = parts[1]
+            ready = parts[2]
+            status = parts[3]
+            restarts = parts[4]
+        else:
+            pod_namespace = namespace
+            pod_name = parts[0]
+            ready = parts[1]
+            status = parts[2]
+            restarts = parts[3]
 
         pod = {
             "name": pod_name,
