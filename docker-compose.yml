@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  # FastAPI Backend
+  backend:
+    build: .
+    container_name: k8s-ai-agent-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=development
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - OLLAMA_MODEL=llama3
+      - APP_HOST=0.0.0.0
+      - APP_PORT=8000
+    volumes:
+      # Mount kubeconfig so container can
+      # talk to your minikube cluster!
+      - ~/.kube:/root/.kube:ro
+      - ./logs:/app/logs
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+
+  # Streamlit Frontend
+  frontend:
+    build: .
+    container_name: k8s-ai-agent-frontend
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://backend:8000
+    volumes:
+      - ~/.kube:/root/.kube:ro
+    command: streamlit run frontend/app.py --server.port 8501 --server.address 0.0.0.0
+    depends_on:
+      - backend
+    restart: unless-stopped
