@@ -13,24 +13,28 @@ def call_ollama(system_prompt: str, user_prompt: str) -> dict:
 
     # Build the request payload
     payload = {
-        "model": settings.OLLAMA_MODEL,
-        "messages": [
-            {
-                "role": "system",
-                "content": system_prompt
-            },
-            {
-                "role": "user",
-                "content": user_prompt
-            }
-        ],
-        "stream": False,    # Get complete response at once
-        "format": "json"    # Force JSON response
+    "model": settings.OLLAMA_MODEL,
+    "messages": [
+        {
+            "role": "system",
+            "content": system_prompt
+        },
+        {
+            "role": "user",
+            "content": user_prompt
+        }
+    ],
+    "stream": False,
+    "format": "json",
+    "options": {
+        "temperature": 0.1,
+        "seed": 42
     }
+}
 
     try:
         # Call Ollama API
-        with httpx.Client(timeout=120.0) as client:
+        with httpx.Client(timeout=300.0) as client:
             log.info("Sending request to Ollama...")
 
             response = client.post(
