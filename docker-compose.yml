@@ -3,7 +3,9 @@ version: '3.8'
 services:
   # FastAPI Backend
   backend:
-    build: .
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: k8s-ai-agent-backend
     ports:
       - "8000:8000"
@@ -14,24 +16,29 @@ services:
       - APP_HOST=0.0.0.0
       - APP_PORT=8000
     volumes:
-      # Mount kubeconfig so container can
-      # talk to your minikube cluster!
       - ~/.kube:/root/.kube:ro
       - ./logs:/app/logs
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+      - ./data:/app/data
     restart: unless-stopped
+    networks:
+      - k8s-ai-network
 
   # Streamlit Frontend
   frontend:
-    build: .
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
     container_name: k8s-ai-agent-frontend
     ports:
       - "8501:8501"
     environment:
       - API_URL=http://backend:8000
-    volumes:
-      - ~/.kube:/root/.kube:ro
-    command: streamlit run frontend/app.py --server.port 8501 --server.address 0.0.0.0
     depends_on:
       - backend
     restart: unless-stopped
+    networks:
+      - k8s-ai-network
+
+networks:
+  k8s-ai-network:
+    driver: bridge
