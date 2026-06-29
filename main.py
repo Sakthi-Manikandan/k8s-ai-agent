@@ -29,6 +29,9 @@ app.include_router(router, prefix="/api/v1")
 
 @app.get("/startup")
 async def startup_event():
+    from backend.db.database import init_database
+    init_database()
+    log.info("Database initialised!")
     """
     Runs when FastAPI starts up!
     Like a welcome message!

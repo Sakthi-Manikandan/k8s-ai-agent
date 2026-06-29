@@ -11,6 +11,14 @@ from backend.services.agent_service import (
     execute_approved_actions
 )
 from backend.core.logger import log
+from backend.db.database import (
+    save_investigation,
+    save_action,
+    get_recent_investigations,
+    get_investigation_stats,
+    init_database
+)
+from datetime import datetime
 import uuid
 
 # Router instance
@@ -62,6 +70,16 @@ async def investigate(request: InvestigateRequest):
 
         # Store pipeline result temporarily
         pipeline_store[pipeline_id] = result
+        
+        # Add timestamp to result
+        result["timestamp"] = datetime.now().isoformat()
+
+        # Save to database
+        save_investigation(
+        pipeline_id,
+        request.namespace,
+        result
+       )
 
         # Build diagnosis response
         diagnosis = result.get("diagnosis", {})
@@ -133,12 +151,21 @@ async def approve_action(request: ApproveActionRequest):
         executed = updated_result.get("executed_actions", [])
 
         if executed:
-            action_result = executed[0]["result"]
-            return {
-                "status": "success",
-                "message": action_result.get("message"),
-                "action": executed[0]["action"]["action_type"]
-            }
+           action_result = executed[0]["result"]
+
+           # Save approved action to database
+           save_action(
+               request.pipeline_id,
+               executed[0]["action"],
+               approved=True,
+               result=action_result
+            )
+
+           return {
+             "status": "success",
+             "message": action_result.get("message"),
+             "action": executed[0]["action"]["action_type"]
+           }
 
         return {
             "status": "failed",
@@ -161,4 +188,18 @@ async def get_pipelines():
     return {
         "total": len(pipeline_store),
         "pipelines": list(pipeline_store.keys())
+    }
+    
+    
+@router.get("/history")
+async def get_history():
+    """
+    Returns recent investigation history!
+    """
+    investigations = get_recent_investigations(limit=10)
+    stats = get_investigation_stats()
+
+    return {
+        "stats": stats,
+        "investigations": investigations
     }

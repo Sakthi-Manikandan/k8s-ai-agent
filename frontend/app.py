@@ -40,6 +40,16 @@ def call_approve(pipeline_id: str, action_index: int) -> dict:
             return response.json()
     except Exception as e:
         return {"error": str(e)}
+    
+    
+def call_history() -> dict:
+    """Gets investigation history from API"""
+    try:
+        with httpx.Client(timeout=30.0) as client:
+            response = client.get(f"{API_URL}/history")
+            return response.json()
+    except Exception as e:
+        return {"error": str(e)}
 
 
 # ─────────────────────────────────────
@@ -275,3 +285,63 @@ if st.session_state.pipeline_result:
     st.caption(
         f"Pipeline ID: {st.session_state.pipeline_id}"
     )
+    
+# ─────────────────────────────────────
+# INVESTIGATION HISTORY
+# ─────────────────────────────────────
+st.divider()
+st.subheader("📋 Investigation History")
+
+history = call_history()
+
+if "error" not in history:
+    stats = history.get("stats", {})
+
+    # Stats row
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric(
+            "Total Investigations",
+            stats.get("total", 0)
+        )
+    with col2:
+        st.metric(
+            "Unhealthy Detected",
+            stats.get("unhealthy", 0)
+        )
+    with col3:
+        avg_conf = stats.get("avg_confidence")
+        st.metric(
+            "Avg Confidence",
+            f"{round(avg_conf)}%" if avg_conf else "N/A"
+        )
+
+    # History table
+    investigations = history.get("investigations", [])
+    if investigations:
+        for inv in investigations:
+            healthy = inv.get("cluster_healthy", False)
+            status_icon = "✅" if healthy else "🔴"
+
+            with st.expander(
+                f"{status_icon} "
+                f"{inv.get('created_at', 'Unknown time')} "
+                f"| {inv.get('namespace', 'default')} "
+                f"| Confidence: {inv.get('confidence', 0)}%"
+            ):
+                st.markdown(
+                    f"**Root Cause:** "
+                    f"{inv.get('root_cause', 'None')}"
+                )
+                st.markdown(
+                    f"**Pods:** {inv.get('total_pods', 0)} total, "
+                    f"{inv.get('problematic_pods', 0)} problematic"
+                )
+                st.markdown(
+                    f"**Pipeline ID:** {inv.get('id', '')}"
+                )
+    else:
+        st.info(
+            "No investigations yet! "
+            "Click Investigate to start! 🔍"
+        )
