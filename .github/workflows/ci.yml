@@ -8,7 +8,7 @@ on:
 
 jobs:
   # ─────────────────────────────────
-  # Job 1: Code Quality Checks
+  # Job 1: Code Quality
   # ─────────────────────────────────
   code-quality:
     name: Code Quality
@@ -35,7 +35,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install flake8 pytest
+          pip install flake8
 
       - name: Run flake8 linting
         run: |
@@ -73,20 +73,23 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-cov
 
-      - name: Create test env file
+      - name: Create env file
         run: |
-          echo "OLLAMA_BASE_URL=http://localhost:11434" >> .env
-          echo "OLLAMA_MODEL=llama3" >> .env
-          echo "APP_ENV=test" >> .env
-          echo "APP_HOST=0.0.0.0" >> .env
-          echo "APP_PORT=8000" >> .env
+          cat > .env << EOF
+          OLLAMA_BASE_URL=http://localhost:11434
+          OLLAMA_MODEL=llama3
+          APP_ENV=test
+          APP_HOST=0.0.0.0
+          APP_PORT=8000
+          STREAMLIT_PORT=8501
+          KUBECONFIG_PATH=~/.kube/config
+          EOF
 
       - name: Run tests
         run: |
           pytest tests/ -v \
             --cov=backend \
-            --cov-report=term-missing \
-            || echo "No tests found yet"
+            --cov-report=term-missing
 
   # ─────────────────────────────────
   # Job 3: Security Scan
@@ -113,12 +116,7 @@ jobs:
           bandit -r backend/ \
             -ll \
             --exclude backend/__pycache__ \
-            -f json \
-            -o bandit-report.json \
             || true
 
-      - name: Upload security report
-        uses: actions/upload-artifact@v3
-        with:
-          name: security-report
-          path: bandit-report.json
+      - name: Print security summary
+        run: echo "Security scan complete!"
