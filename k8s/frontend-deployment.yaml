@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-ai-agent-frontend
+  namespace: k8s-ai-agent
+  labels:
+    app: k8s-ai-agent
+    component: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: k8s-ai-agent
+      component: frontend
+  template:
+    metadata:
+      labels:
+        app: k8s-ai-agent
+        component: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: your-dockerhub-username/k8s-ai-agent-frontend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8501
+
+          env:
+            - name: API_URL
+              value: "http://k8s-ai-agent-backend-svc:8000"
+
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+
+          livenessProbe:
+            httpGet:
+              path: /_stcore/health
+              port: 8501
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /_stcore/health
+              port: 8501
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3

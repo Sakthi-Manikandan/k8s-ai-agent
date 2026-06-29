@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: k8s-ai-agent
+  labels:
+    app: k8s-ai-agent
+    managed-by: kubectl
