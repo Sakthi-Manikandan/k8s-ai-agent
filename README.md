@@ -413,7 +413,7 @@ MIT License — See LICENSE file
 
 ## 👨‍💻 Author
 
-**Sakthi Manikandan**
+**Sakthi Manikandan A**
 - GitHub: [@Sakthi-Manikandan](https://github.com/Sakthi-Manikandan/)
 - LinkedIn: [sakthi-manikandan](https://www.linkedin.com/in/sakthi-manikandan/)
 - Email: sakthimanikandan1718@gmail.com
