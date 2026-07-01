@@ -70,47 +70,32 @@ Manual Kubernetes troubleshooting takes **30-60 minutes per incident**. This age
 ---
 
 ## 🏗️ Architecture
+```mermaid
+flowchart TD
+    A["Streamlit Frontend<br/>(Port 8501)"]
+    B["FastAPI Backend<br/>(Port 8000)"]
 
-┌─────────────────────────────────────────────────┐
-│         Streamlit Frontend (8501)                │
-│      Beautiful Investigation Dashboard           │
-└──────────────────┬──────────────────────────────┘
-│
-↓ (REST API)
-┌─────────────────────────────────────────────────┐
-│           FastAPI Backend (8000)                 │
-│      Orchestrates investigation pipeline        │
-└──────────────────┬──────────────────────────────┘
-│
-┌──────────┼──────────┐
-↓          ↓          ↓
-┌────────┐ ┌──────┐ ┌──────────┐
-│Kubernetes Investigation Layer       │
-│ • Pod Inspector (status, logs)      │
-│ • Event Analyzer (failures)         │
-│ • Deployment Inspector (replicas)   │
-│ • Log Collector (error patterns)    │
-│ • Network Inspector (services)      │
-└─────────────────────────────────────┘
-↓
-┌─────────────────────────────────────┐
-│   AI Reasoning Engine (Llama3)      │
-│  Diagnoses root cause + suggests fix│
-└─────────────────────────────────────┘
-↓
-┌─────────────────────────────────────┐
-│  Remediation Engine                 │
-│  Executes approved kubectl commands │
-│  • restart_pod                      │
-│  • restart_deployment               │
-│  • scale_deployment                 │
-└─────────────────────────────────────┘
-↓
-┌─────────────────────────────────────┐
-│  SQLite Database                    │
-│  Stores investigation history       │
-│  Tracks all actions + decisions     │
-└─────────────────────────────────────┘
+    A -->|REST API| B
+
+    B --> C["Kubernetes Investigation Layer
+    <br/>• Pod Inspector
+    <br/>• Event Analyzer
+    <br/>• Deployment Inspector
+    <br/>• Log Collector
+    <br/>• Network Inspector"]
+
+    C --> D["AI Reasoning Engine (Llama 3)
+    <br/>Root Cause Analysis"]
+
+    D --> E["Remediation Engine
+    <br/>• restart_pod
+    <br/>• restart_deployment
+    <br/>• scale_deployment"]
+
+    E --> F["SQLite Database
+    <br/>Investigation History
+    <br/>Action Tracking"]
+```
 ---
 
 ## 🚀 Quick Start
@@ -262,63 +247,30 @@ This is a **Proof of Concept**. To move to production:
 ---
 
 ## 📁 Project Structure
+
+<details>
+<summary><b>📁 Project Structure</b></summary>
+
+```text
 k8s-ai-agent/
 ├── backend/
-│   ├── kubernetes/          # K8s investigation layer
-│   │   ├── kubectl_executor.py
-│   │   ├── pod_inspector.py
-│   │   ├── log_collector.py
-│   │   ├── event_analyzer.py
-│   │   ├── deployment_inspector.py
-│   │   ├── network_inspector.py
-│   │   ├── investigation_service.py
-│   │   └── remediation.py
-│   ├── ai/                  # AI reasoning engine
-│   │   ├── llm_client.py
-│   │   ├── prompt_builder.py
-│   │   └── reasoning_engine.py
-│   ├── db/                  # Database layer
-│   │   ├── database.py      # SQLite operations
-│   │   └── models.py        # Pydantic models
-│   ├── core/                # Configuration
-│   │   ├── settings.py
-│   │   └── logger.py
-│   ├── api/                 # FastAPI routes
-│   │   └── routes.py
-│   └── services/            # Business logic
-│       └── agent_service.py
+│   ├── kubernetes/
+│   ├── ai/
+│   ├── db/
+│   ├── core/
+│   ├── api/
+│   └── services/
 ├── frontend/
-│   ├── app.py               # Streamlit dashboard
-│   └── Dockerfile
-├── k8s/                     # Kubernetes manifests
-│   ├── namespace.yaml
-│   ├── serviceaccount.yaml  # RBAC configuration
-│   ├── configmap.yaml
-│   ├── secret.yaml
-│   ├── backend-deployment.yaml
-│   ├── frontend-deployment.yaml
-│   ├── backend-service.yaml
-│   ├── frontend-service.yaml
-│   └── deploy.sh
-├── .github/workflows/       # CI/CD pipelines
-│   ├── ci.yml               # Tests, linting, security
-│   └── docker-build.yml     # Docker build verification
-├── docs/                    # Documentation
-│   ├── ARCHITECTURE.md
-│   ├── DEPLOYMENT.md
-│   ├── DEVELOPMENT.md
-│   └── screenshots/
-├── tests/                   # Unit tests
-│   └── test_basic.py
-├── main.py                  # FastAPI entry point
-├── requirements.txt         # Python dependencies
-├── docker-compose.yml       # Local development
-├── Dockerfile              # Deprecated (use backend/frontend versions)
-├── .dockerignore
-├── .gitattributes
-├── .gitignore
-└── README.md               # This file
+├── k8s/
+├── docs/
+├── tests/
+├── .github/
+├── main.py
+├── requirements.txt
+└── README.md
+```
 
+</details>
 ---
 
 ## 🛠️ Technologies
