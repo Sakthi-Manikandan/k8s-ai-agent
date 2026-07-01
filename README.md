@@ -396,7 +396,6 @@ k8s-ai-agent/
 
 - [Architecture Deep Dive](docs/ARCHITECTURE.md)
 - [Deployment Guide](docs/DEPLOYMENT.md)
-- [Development Guide](docs/DEVELOPMENT.md)
 
 ---
 
