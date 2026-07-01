@@ -117,7 +117,7 @@ flowchart TD
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/Sakthiz/k8s-ai-agent.git
+git clone https://github.com/Sakthi-Manikandan/k8s-ai-agent
 cd k8s-ai-agent
 
 # 2. Create and activate virtual environment
